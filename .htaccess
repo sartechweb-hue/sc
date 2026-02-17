@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Evitar acceso a carpetas internas
+Options -Indexes
+
+# Redirigir todo a index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+RewriteRule ^(.*)$ index.php?pagina=$1 [L,QSA]
