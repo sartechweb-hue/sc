@@ -2,76 +2,156 @@
 
 class CorreosControlador {
 
+/* ===========================
+   Enviar correo
+=========================== */
+static public function ctrEnviarCorreo(){
+
+  if(!isset($_POST["to"])) return;
+
   /* ===========================
-     Enviar correo
+     VALIDACIONES
   =========================== */
-  static public function ctrEnviarCorreo(){
 
-    if(!isset($_POST["to"])) return;
+  $from    = trim($_POST["from"] ?? '');
+  $to      = trim($_POST["to"] ?? '');
+  $asunto  = trim($_POST["asunto"] ?? '');
+  $mensaje = trim($_POST["mensaje"] ?? '');
 
-    /* ==== VALIDACIONES ==== */
+  // Validar correos
+  if(
+    !filter_var($to, FILTER_VALIDATE_EMAIL) ||
+    !filter_var($from, FILTER_VALIDATE_EMAIL)
+  ){
+    return ["error"=>"Correo inválido"];
+  }
 
-    if(
-      !filter_var($_POST["to"], FILTER_VALIDATE_EMAIL) ||
-      empty($_POST["from"]) ||
-      empty($_POST["asunto"]) ||
-      empty($_POST["mensaje"])
-    ){
-      return ["error"=>"Datos inválidos"];
-    }
+  // Validar campos
+  if(empty($asunto) || empty($mensaje)){
+    return ["error"=>"Campos incompletos"];
+  }
 
-    $datos = [
+  // Validar sesión
+  if(!isset($_SESSION["id_usuario"])){
+    return ["error"=>"Sesión inválida"];
+  }
 
-      "usuario" => $_SESSION["id_usuario"],
-      "from"    => $_POST["from"],
-      "to"      => $_POST["to"],
-      "asunto"  => $_POST["asunto"],
-      "mensaje" => $_POST["mensaje"]
 
-    ];
+  /* ===========================
+     PREPARAR DATOS
+  =========================== */
 
-    /* ==== GUARDAR ==== */
+  $datos = [
+
+    "usuario" => (int) $_SESSION["id_usuario"],
+    "from"    => $from,
+    "to"      => $to,
+    "asunto"  => htmlspecialchars($asunto),
+    "mensaje" => htmlspecialchars($mensaje)
+
+  ];
+
+
+  /* ===========================
+     GUARDAR BD
+  =========================== */
+
+  try{
 
     $resp = CorreosModelo::mdlGuardarCorreo($datos);
 
-    if($resp!="ok") return ["error"=>"DB"];
+    if($resp != "ok"){
+      return ["error"=>"Error al guardar"];
+    }
 
-    /* ==== ENVIAR A N8N ==== */
+  }catch(Exception $e){
 
-    self::enviarAN8N($datos);
+    return ["error"=>"DB: ".$e->getMessage()];
 
-    return ["ok"=>"enviado"];
   }
 
 
-
   /* ===========================
-     Webhook n8n
+     ENVIAR N8N
   =========================== */
-  static private function enviarAN8N($data){
 
-    $url = "http://localhost:5678/webhook/enviar-correo";
+  $respuesta = self::enviarAN8N($datos);
 
-    $ch = curl_init($url);
+  if(!$respuesta){
+    return ["error"=>"No responde n8n"];
+  }
 
-    curl_setopt($ch,CURLOPT_POST,true);
-    curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-    curl_setopt($ch,CURLOPT_HTTPHEADER,['Content-Type: application/json']);
-    curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($data));
 
-    curl_exec($ch);
+  return ["ok"=>"Correo enviado"];
+
+}
+
+
+
+/* ===========================
+   Historial
+=========================== */
+static public function ctrHistorial(){
+
+  return CorreosModelo::mdlHistorial();
+
+}
+
+
+
+/* ===========================
+   Obtener remitentes
+=========================== */
+static public function ctrObtenerRemitentes(){
+
+  return CorreosModelo::mdlObtenerRemitentes();
+
+}
+
+
+
+/* ===========================
+   Obtener contactos
+=========================== */
+static public function ctrObtenerContactos(){
+
+  return CorreosModelo::mdlObtenerContactos();
+
+}
+
+
+
+/* ===========================
+   Webhook n8n
+=========================== */
+static private function enviarAN8N($data){
+
+  $url = "http://localhost:5678/webhook/enviar-correo";
+
+  $ch = curl_init($url);
+
+  curl_setopt_array($ch,[
+
+    CURLOPT_POST           => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+    CURLOPT_POSTFIELDS     => json_encode($data),
+    CURLOPT_TIMEOUT        => 15
+
+  ]);
+
+  $response = curl_exec($ch);
+
+  if(curl_errno($ch)){
     curl_close($ch);
-
+    return false;
   }
 
+  curl_close($ch);
 
-  /* ===========================
-     Historial
-  =========================== */
-  static public function ctrHistorial(){
+  return json_decode($response,true);
 
-    return CorreosModelo::mdlHistorial();
+}
 
-  }
 
 }

@@ -62,7 +62,6 @@ switch($pagina){
 <footer class="text-center mt-5 text-muted">
 
 <hr>
-<p>Sistema desarrollado por Sartech © <?= date("Y") ?></p>
 
 </footer>
 

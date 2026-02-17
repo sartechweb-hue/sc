@@ -11,18 +11,50 @@ $historial = CorreosControlador::ctrHistorial();
 <!-- REMITENTE -->
 <div class="mb-2">
 <label>Remitente</label>
-<select class="form-control" name="from" required>
-  <option value="">Seleccione</option>
-  <option value="ventas@empresa.com">Ventas</option>
-  <option value="info@empresa.com">Info</option>
-  <option value="soporte@empresa.com">Soporte</option>
+
+<select name="from" class="form-control" required>
+
+<option value="">Seleccione</option>
+
+<?php
+$remitentes = CorreosControlador::ctrObtenerRemitentes();
+
+foreach($remitentes as $r):
+?>
+
+<option value="<?= $r["email"] ?>">
+  <?= $r["nombre"] ?> (<?= $r["email"] ?>)
+</option>
+
+<?php endforeach; ?>
+
 </select>
 </div>
 
-<!-- DESTINO -->
+
+<!-- DESTINATARIO -->
 <div class="mb-2">
 <label>Destinatario</label>
-<input type="email" name="to" class="form-control" required>
+
+<select name="to" class="form-control" required>
+
+<option value="">Seleccione</option>
+
+<?php
+$contactos = CorreosControlador::ctrObtenerContactos();
+
+foreach($contactos as $c):
+
+?>
+
+<option value="<?= $c["email"] ?>">
+  <?= $c["nombre"] ?> (<?= $c["email"] ?>)
+</option>
+
+<?php endforeach; ?>
+
+</select>
+</div>
 </div>
 
 <!-- MOTIVO -->

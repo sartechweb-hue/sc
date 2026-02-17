@@ -41,4 +41,60 @@ class CorreosModelo {
     return $stmt->fetchAll();
   }
 
+  /* ===========================
+   Obtener destinatarios
+=========================== */
+static public function mdlObtenerContactos(){
+
+  $stmt = Conexion::conectar()->prepare("
+    SELECT id,nombre,email
+    FROM contactos_email
+    WHERE activo = 1
+    ORDER BY nombre
+  ");
+
+  $stmt->execute();
+
+  return $stmt->fetchAll();
+}
+
+/* ===========================
+   Obtener remitentes
+=========================== */
+static public function mdlObtenerRemitentes(){
+
+  $stmt = Conexion::conectar()->prepare("
+    SELECT id,nombre,email
+    FROM correos_remitentes
+    WHERE activo = 1
+    ORDER BY nombre
+  ");
+
+  $stmt->execute();
+
+  return $stmt->fetchAll();
+}
+
+/* ===========================
+   Actualizar estado
+=========================== */
+static public function mdlActualizarEstado($destino,$estado){
+
+  $stmt = Conexion::conectar()->prepare("
+    UPDATE correos_enviados
+    SET estado = :estado
+    WHERE destinatario = :to
+    ORDER BY id DESC
+    LIMIT 1
+  ");
+
+  $stmt->bindParam(":estado",$estado,PDO::PARAM_STR);
+  $stmt->bindParam(":to",$destino,PDO::PARAM_STR);
+
+  return $stmt->execute();
+}
+
+
+
+
 }
