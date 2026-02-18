@@ -64,7 +64,7 @@ static public function mdlObtenerContactos(){
 static public function mdlObtenerRemitentes(){
 
   $stmt = Conexion::conectar()->prepare("
-    SELECT id,nombre,email
+    SELECT id,nombre,email,smtp_key
     FROM correos_remitentes
     WHERE activo = 1
     ORDER BY nombre

@@ -22,13 +22,19 @@ $remitentes = CorreosControlador::ctrObtenerRemitentes();
 foreach($remitentes as $r):
 ?>
 
-<option value="<?= $r["email"] ?>">
+<option 
+  value="<?= $r["email"] ?>" 
+  data-smtp="<?= $r["smtp_key"] ?>"
+>
   <?= $r["nombre"] ?> (<?= $r["email"] ?>)
 </option>
+
 
 <?php endforeach; ?>
 
 </select>
+<input type="hidden" name="smtp_key" id="smtp_key">
+
 </div>
 
 
@@ -102,6 +108,18 @@ foreach($contactos as $c):
 </table>
 
 </div>
+
+<script>
+document.querySelector('[name="from"]').addEventListener('change', function(){
+
+  const selected = this.options[this.selectedIndex];
+  const smtp = selected.getAttribute('data-smtp');
+
+  document.getElementById('smtp_key').value = smtp;
+
+});
+</script>
+
 
 
 <script>

@@ -17,6 +17,8 @@ static public function ctrEnviarCorreo(){
   $to      = trim($_POST["to"] ?? '');
   $asunto  = trim($_POST["asunto"] ?? '');
   $mensaje = trim($_POST["mensaje"] ?? '');
+  $smtp_key = trim($_POST["smtp_key"] ?? '');
+
 
   // Validar correos
   if(
@@ -47,7 +49,9 @@ static public function ctrEnviarCorreo(){
     "from"    => $from,
     "to"      => $to,
     "asunto"  => htmlspecialchars($asunto),
-    "mensaje" => htmlspecialchars($mensaje)
+    "mensaje" => htmlspecialchars($mensaje),
+    "smtp_key" => $smtp_key
+
 
   ];
 

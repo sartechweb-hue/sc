@@ -20,7 +20,7 @@
   <div class="container-fluid">
 
     <span class="navbar-brand">
-      📧 Sistema de Correos
+       Sistema de Correos
     </span>
 
     <span class="text-white">
