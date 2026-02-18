@@ -78,13 +78,25 @@ static public function mdlExisteMessageId($message_id){
     return $stmt->fetch() ? true : false;
 }
 
+// Agregar un item a una cotización
 static public function mdlAgregarItem($datos){
 
     $stmt = Conexion::conectar()->prepare("
-        INSERT INTO cotizacion_items
-        (cotizacion_id, descripcion, cantidad, precio_unitario, subtotal)
-        VALUES
-        (:cotizacion_id, :descripcion, :cantidad, :precio_unitario, :subtotal)
+        INSERT INTO cotizaciones_detalle (
+            cotizacion_id,
+            descripcion,
+            cantidad,
+            precio_unitario,
+            subtotal,
+            texto_detectado
+        ) VALUES (
+            :cotizacion_id,
+            :descripcion,
+            :cantidad,
+            :precio_unitario,
+            :subtotal,
+            :texto_detectado
+        )
     ");
 
     $stmt->bindParam(":cotizacion_id", $datos["cotizacion_id"]);
@@ -92,9 +104,11 @@ static public function mdlAgregarItem($datos){
     $stmt->bindParam(":cantidad", $datos["cantidad"]);
     $stmt->bindParam(":precio_unitario", $datos["precio_unitario"]);
     $stmt->bindParam(":subtotal", $datos["subtotal"]);
+    $stmt->bindParam(":texto_detectado", $datos["texto_detectado"]);
 
-    return $stmt->execute() ? "ok" : "error";
+    return $stmt->execute();
 }
+
 
 
 // Obtener cotización por ID
@@ -118,7 +132,7 @@ static public function mdlObtenerItems($cotizacion_id){
 
     $stmt = Conexion::conectar()->prepare("
         SELECT *
-        FROM cotizacion_items
+        FROM cotizaciones_detalle   
         WHERE cotizacion_id = :cotizacion_id
     ");
 
@@ -127,6 +141,22 @@ static public function mdlObtenerItems($cotizacion_id){
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+
+// Obtener catálogo de servicios
+static public function mdlObtenerCatalogo(){
+
+    $stmt = Conexion::conectar()->prepare("
+        SELECT * FROM catalogo_servicios
+        WHERE activo = 1
+    ");
+
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
 
 
 }

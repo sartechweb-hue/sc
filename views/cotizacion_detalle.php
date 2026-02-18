@@ -56,9 +56,18 @@ if(!$cotizacion){
 
 <tr>
 <td>
-<input type="text" name="descripcion[]" class="form-control"
-value="<?= $item["descripcion"] ?>">
+    <input type="text"
+           name="descripcion[]"
+           class="form-control"
+           value="<?= $item["descripcion"] ?>">
+
+    <?php if(!empty($item["texto_detectado"])): ?>
+        <small class="text-muted">
+            Texto original: <?= $item["texto_detectado"] ?>
+        </small>
+    <?php endif; ?>
 </td>
+
 
 <td>
 <input type="number" name="cantidad[]" class="form-control cantidad"
