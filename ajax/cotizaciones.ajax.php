@@ -1,6 +1,5 @@
 <?php
 
-// 🔴 ELIMINA CUALQUIER SALIDA PREVIA
 if (ob_get_level()) {
     ob_end_clean();
 }
@@ -13,52 +12,64 @@ require_once "../controllers/CotizacionesControlador.php";
 
 define("API_TOKEN", "SC_TOKEN_2026_SECRETO");
 
-/* ===========================
-   VALIDAR MÉTODO
-=========================== */
-
-if($_SERVER["REQUEST_METHOD"] !== "POST"){
-    http_response_code(405);
-    echo json_encode(["error" => "Método no permitido"]);
-    exit;
-}
-
-/* ===========================
-   VALIDAR TOKEN
-=========================== */
-
-$token = $_SERVER['HTTP_X_API_TOKEN'] ?? '';
-
-if($token !== API_TOKEN){
-    http_response_code(401);
-    echo json_encode(["error" => "No autorizado"]);
-    exit;
-}
-
-/* ===========================
-   LEER INPUT
-=========================== */
+/* =========================================================
+   1️ SI VIENE JSON (API EXTERNA - n8n)
+========================================================= */
 
 $raw = file_get_contents("php://input");
 $input = json_decode($raw, true);
 
-if(json_last_error() !== JSON_ERROR_NONE){
-    http_response_code(400);
-    echo json_encode(["error" => "JSON inválido"]);
+if($_SERVER["REQUEST_METHOD"] === "POST" && $input){
+
+    $token = $_SERVER['HTTP_X_API_TOKEN'] ?? '';
+
+    if($token !== API_TOKEN){
+        echo json_encode(["error" => "No autorizado"]);
+        exit;
+    }
+
+    if(isset($input["accion"]) && $input["accion"] === "crear_desde_correo"){
+        $respuesta = CotizacionesControlador::ctrCrearDesdeCorreo($input);
+        echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if(isset($input["accion"]) && $input["accion"] === "enviar_cotizacion"){
+        $respuesta = CotizacionesControlador::ctrEnviarCotizacion($input["id"]);
+        echo json_encode($respuesta);
+        exit;
+    }
+
+    echo json_encode(["error" => "Acción inválida"]);
     exit;
 }
 
-/* ===========================
-   PROCESAR ACCIÓN
-=========================== */
+/* =========================================================
+   2️ PANEL INTERNO
+========================================================= */
 
-if(isset($input["accion"]) && $input["accion"] === "crear_desde_correo"){
+if($_SERVER["REQUEST_METHOD"] === "POST"){
 
-    $respuesta = CotizacionesControlador::ctrCrearDesdeCorreo($input);
+    // 🔹 Guardar items
+    if(isset($_POST["cotizacion_id"])){
 
-    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
-    exit;
+        $respuesta = CotizacionesControlador::ctrGuardarItems($_POST);
+        echo json_encode($respuesta);
+        exit;
+    }
+
+    // 🔹 Enviar cotización
+    if(isset($_POST["accion"]) && $_POST["accion"] === "enviar"){
+
+        $id = (int)$_POST["id"];
+
+        $respuesta = CotizacionesControlador::ctrEnviarCotizacion($id);
+        echo json_encode($respuesta);
+        exit;
+    }
 }
 
-echo json_encode(["error" => "Acción inválida"]);
+echo json_encode(["error" => "Solicitud inválida"]);
 exit;
+
+

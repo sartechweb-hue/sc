@@ -104,6 +104,11 @@ body {
                 echo "<h4>Configuración próximamente...</h4>";
             break;
 
+            case "generar_pdf":
+    require_once "views/generar_pdf.php";
+    break;
+
+
             default:
                 echo "<h4>Página no encontrada</h4>";
             break;

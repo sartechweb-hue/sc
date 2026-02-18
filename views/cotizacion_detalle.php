@@ -8,18 +8,27 @@ if(!isset($_GET["id"])){
 $id = (int) $_GET["id"];
 
 $cotizacion = CotizacionesControlador::ctrObtenerCotizacion($id);
-$items = CotizacionesControlador::ctrObtenerItems($id);
 
 if(!$cotizacion){
     echo "<h4>Cotización no encontrada</h4>";
     return;
 }
 
+$items = CotizacionesControlador::ctrObtenerItems($id);
+$bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
+
 ?>
 
 <div class="container mt-4">
 
 <h4>Detalle Cotización</h4>
+
+<?php if($bloqueada): ?>
+<div class="alert alert-success">
+    Cotización <?= ucfirst($cotizacion["estado"]) ?> — Documento bloqueado
+</div>
+<?php endif; ?>
+
 
 <div class="card mb-3">
 <div class="card-body">
@@ -33,7 +42,6 @@ if(!$cotizacion){
 </div>
 </div>
 
-
 <form id="formItems">
 
 <input type="hidden" name="cotizacion_id" value="<?= $id ?>">
@@ -46,7 +54,9 @@ if(!$cotizacion){
 <th width="100">Cantidad</th>
 <th width="150">Precio Unit.</th>
 <th width="150">Subtotal</th>
+<?php if(!$bloqueada): ?>
 <th width="50"></th>
+<?php endif; ?>
 </tr>
 </thead>
 
@@ -55,11 +65,16 @@ if(!$cotizacion){
 <?php foreach($items as $item): ?>
 
 <tr>
+
+<input type="hidden" name="item_id[]" value="<?= $item["id"] ?>">
+
 <td>
+
     <input type="text"
            name="descripcion[]"
            class="form-control"
-           value="<?= $item["descripcion"] ?>">
+           value="<?= $item["descripcion"] ?>"
+           <?= $bloqueada ? 'readonly' : '' ?>>
 
     <?php if(!empty($item["texto_detectado"])): ?>
         <small class="text-muted">
@@ -68,24 +83,34 @@ if(!$cotizacion){
     <?php endif; ?>
 </td>
 
-
 <td>
-<input type="number" name="cantidad[]" class="form-control cantidad"
-value="<?= $item["cantidad"] ?>" min="1">
+<input type="number"
+       name="cantidad[]"
+       class="form-control cantidad"
+       value="<?= $item["cantidad"] ?>"
+       min="1"
+       <?= $bloqueada ? 'readonly' : '' ?>>
 </td>
 
 <td>
-<input type="number" step="0.01" name="precio[]" class="form-control precio"
-value="<?= $item["precio_unitario"] ?>">
+<input type="number"
+       step="0.01"
+       name="precio[]"
+       class="form-control precio"
+       value="<?= $item["precio_unitario"] ?>"
+       <?= $bloqueada ? 'readonly' : '' ?>>
 </td>
 
 <td class="subtotal text-end">
 <?= number_format($item["subtotal"],2) ?>
 </td>
 
+<?php if(!$bloqueada): ?>
 <td>
 <button type="button" class="btn btn-danger btn-sm eliminarFila">X</button>
 </td>
+<?php endif; ?>
+
 </tr>
 
 <?php endforeach; ?>
@@ -94,9 +119,11 @@ value="<?= $item["precio_unitario"] ?>">
 
 </table>
 
+<?php if(!$bloqueada): ?>
 <button type="button" class="btn btn-secondary mb-3" id="agregarItem">
 Agregar Item
 </button>
+<?php endif; ?>
 
 <h5 class="text-end">
 Total: $ <span id="totalGeneral">0.00</span>
@@ -104,29 +131,34 @@ Total: $ <span id="totalGeneral">0.00</span>
 
 <hr>
 
+<?php if(!$bloqueada): ?>
 <button type="button" class="btn btn-success" id="guardarItems">
 Guardar
 </button>
+<?php endif; ?>
 
-<a href="index.php?pagina=generar_pdf&id=<?= $id ?>"
-class="btn btn-primary">
+<a href="views/generar_pdf.php?id=<?= $id ?>" class="btn btn-primary">
 Generar PDF
 </a>
 
+
+<?php if(!$bloqueada): ?>
 <button type="button"
 class="btn btn-dark"
 id="enviarCotizacion"
 data-id="<?= $id ?>">
 Enviar Cotización
 </button>
+<?php endif; ?>
+
 
 </form>
 
 </div>
 
-
-
 <script>
+
+let bloqueada = <?= $bloqueada ? 'true' : 'false' ?>;
 
 /* ============================
    Calcular totales
@@ -138,8 +170,8 @@ function recalcular(){
 
     document.querySelectorAll("#tablaItems tbody tr").forEach(fila=>{
 
-        let cantidad = parseFloat(fila.querySelector(".cantidad").value) || 0;
-        let precio = parseFloat(fila.querySelector(".precio").value) || 0;
+        let cantidad = parseFloat(fila.querySelector(".cantidad")?.value) || 0;
+        let precio = parseFloat(fila.querySelector(".precio")?.value) || 0;
 
         let subtotal = cantidad * precio;
 
@@ -154,6 +186,8 @@ function recalcular(){
         total.toFixed(2);
 }
 
+if(!bloqueada){
+
 document.addEventListener("input",function(e){
 
     if(e.target.classList.contains("cantidad") ||
@@ -163,29 +197,27 @@ document.addEventListener("input",function(e){
 
 });
 
-
 /* ============================
    Agregar fila
 ============================ */
 
-document.getElementById("agregarItem")
-.addEventListener("click",()=>{
+document.getElementById("agregarItem")?.addEventListener("click",()=>{
 
-    let fila = `
-    <tr>
-    <td><input type="text" name="descripcion[]" class="form-control"></td>
-    <td><input type="number" name="cantidad[]" class="form-control cantidad" value="1"></td>
-    <td><input type="number" step="0.01" name="precio[]" class="form-control precio" value="0"></td>
-    <td class="subtotal text-end">0.00</td>
-    <td><button type="button" class="btn btn-danger btn-sm eliminarFila">X</button></td>
-    </tr>
-    `;
+ let fila = `
+<tr>
+<input type="hidden" name="item_id[]" value="">
+<td><input type="text" name="descripcion[]" class="form-control"></td>
+<td><input type="number" name="cantidad[]" class="form-control cantidad" value="1"></td>
+<td><input type="number" step="0.01" name="precio[]" class="form-control precio" value="0"></td>
+<td class="subtotal text-end">0.00</td>
+<td><button type="button" class="btn btn-danger btn-sm eliminarFila">X</button></td>
+</tr>
+`;
 
     document.querySelector("#tablaItems tbody")
     .insertAdjacentHTML("beforeend", fila);
 
 });
-
 
 /* ============================
    Eliminar fila
@@ -200,13 +232,11 @@ document.addEventListener("click",function(e){
 
 });
 
-
 /* ============================
    Guardar items
 ============================ */
 
-document.getElementById("guardarItems")
-.addEventListener("click",()=>{
+document.getElementById("guardarItems")?.addEventListener("click",()=>{
 
     fetch("ajax/cotizaciones.ajax.php",{
         method:"POST",
@@ -224,39 +254,36 @@ document.getElementById("guardarItems")
 
 });
 
+}
 
-/* ============================
-   Enviar Cotización
-============================ */
+recalcular();
 
-document.getElementById("enviarCotizacion")
-.addEventListener("click",function(){
+</script>
+
+
+<script>
+document.getElementById("enviarCotizacion")?.addEventListener("click",function(){
 
     let id = this.dataset.id;
 
+    let formData = new FormData();
+    formData.append("accion", "enviar");
+    formData.append("id", id);
+
     fetch("ajax/cotizaciones.ajax.php",{
         method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            accion:"enviar_cotizacion",
-            id:id
-        })
+        body: formData
     })
     .then(r=>r.json())
     .then(r=>{
         if(r.ok){
-            alert("Cotización enviada");
+            alert("Cotización enviada correctamente");
             location.reload();
         }else{
-            alert("Error al enviar");
+            alert(r.error || "Error al enviar");
         }
     });
 
 });
-
-
-recalcular();
 
 </script>
