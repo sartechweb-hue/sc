@@ -28,6 +28,10 @@ if(!isset($_SESSION["id_usuario"])){
 require_once "models/CorreosModelo.php";
 require_once "controllers/CorreosControlador.php";
 
+require_once "models/CotizacionesModelo.php";
+require_once "controllers/CotizacionesControlador.php";
+
+
 /* ===========================
    CARGAR PLANTILLA
 =========================== */
