@@ -99,14 +99,13 @@ static public function mdlAgregarItem($datos){
         )
     ");
 
-    $stmt->bindParam(":cotizacion_id", $datos["cotizacion_id"], PDO::PARAM_INT);
-    $stmt->bindParam(":descripcion", $datos["descripcion"], PDO::PARAM_STR);
-    $stmt->bindParam(":cantidad", $datos["cantidad"], PDO::PARAM_INT);
-    $stmt->bindParam(":precio_unitario", $datos["precio_unitario"]);
-    $stmt->bindParam(":subtotal", $datos["subtotal"]);
-    $stmt->bindParam(":texto_detectado", $datos["texto_detectado"], PDO::PARAM_STR);
-    $stmt->bindParam(":precio_unitario", $datos["precio_unitario"], PDO::PARAM_STR);
+  $stmt->bindParam(":cotizacion_id", $datos["cotizacion_id"], PDO::PARAM_INT);
+$stmt->bindParam(":descripcion", $datos["descripcion"], PDO::PARAM_STR);
+$stmt->bindParam(":cantidad", $datos["cantidad"], PDO::PARAM_INT);
+$stmt->bindParam(":precio_unitario", $datos["precio_unitario"], PDO::PARAM_STR);
 $stmt->bindParam(":subtotal", $datos["subtotal"], PDO::PARAM_STR);
+$stmt->bindParam(":texto_detectado", $datos["texto_detectado"], PDO::PARAM_STR);
+
 
 
     return $stmt->execute();

@@ -286,7 +286,10 @@ static public function ctrGuardarItems($data){
         }
     }
 
-    return ["ok" => true];
+// Cambiar estado a enviada al guardar
+CotizacionesModelo::mdlCambiarEstado($cotizacion_id, "enviada");
+
+return ["ok" => true];
 }
 
 
