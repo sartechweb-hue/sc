@@ -319,6 +319,13 @@ static public function ctrEnviarCotizacion($id){
         return ["error" => "Ya fue enviada o cerrada"];
     }
 
+    // Generar token único
+$token = bin2hex(random_bytes(32));
+
+// Guardarlo en BD
+CotizacionesModelo::mdlGuardarToken($id, $token);
+ 
+
     /* ===============================
        LLAMAR A N8N
     =============================== */
@@ -367,6 +374,59 @@ static public function ctrCerrarCotizacion($id){
     return CotizacionesModelo::mdlCambiarEstado($id, "cerrada");
 }
 
+static public function ctrCambiarEstado($id, $nuevoEstado){
+
+    $permitidos = [
+        "solicitada","guardada","enviada",
+        "aceptada","rechazada",
+        "facturada","pagada",
+        "entregada","cerrada"
+    ];
+
+    if(!in_array($nuevoEstado, $permitidos)){
+        return ["error" => "Estado inválido"];
+    }
+
+    return CotizacionesModelo::mdlCambiarEstado($id, $nuevoEstado);
+}
+
+static public function ctrActualizarDesdeRespuesta($data){
+
+    $token = $data["token"] ?? null;
+    $estado = $data["estado"] ?? null;
+
+    if(!$token || !$estado){
+        return ["error" => "Datos incompletos"];
+    }
+
+    $permitidos = ["aceptada", "rechazada"];
+
+    if(!in_array($estado, $permitidos)){
+        return ["error" => "Estado no permitido"];
+    }
+
+    $cotizacion = CotizacionesModelo::mdlObtenerPorToken($token);
+
+    if(!$cotizacion){
+        return ["error" => "Token inválido"];
+    }
+
+    if($cotizacion["estado"] !== "enviada"){
+        return ["error" => "Ya fue procesada"];
+    }
+
+    $ok = CotizacionesModelo::mdlCambiarEstado(
+        $cotizacion["id"],
+        $estado
+    );
+
+    if($ok){
+        CotizacionesModelo::mdlRegistrarFechaRespuesta($cotizacion["id"]);
+        return ["ok" => true];
+    }
+
+    return ["error" => "No se pudo actualizar"];
+}
 
 
 }

@@ -54,14 +54,27 @@ static public function mdlListar($tabla){
     $stmt = Conexion::conectar()->prepare("
         SELECT *
         FROM $tabla
-        ORDER BY id DESC
+        ORDER BY 
+            CASE estado
+                WHEN 'aceptada' THEN 1
+                WHEN 'enviada' THEN 2
+                WHEN 'guardada' THEN 3
+                WHEN 'solicitada' THEN 4
+                WHEN 'facturada' THEN 5
+                WHEN 'pagada' THEN 6
+                WHEN 'entregada' THEN 7
+                WHEN 'cerrada' THEN 8
+                WHEN 'rechazada' THEN 9
+                ELSE 10
+            END,
+            fecha_creacion DESC
     ");
 
     $stmt->execute();
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 }
+
 // Verificar si ya existe una cotización con el mismo message_id para evitar duplicados
 static public function mdlExisteMessageId($message_id){
 
@@ -247,7 +260,63 @@ static public function mdlEliminarItemPorId($id){
     return $stmt->execute();
 }
 
+static public function mdlObtenerPorFolio($folio){
 
+    $db = Conexion::conectar();
+
+    $stmt = $db->prepare("
+        SELECT * 
+        FROM cotizaciones 
+        WHERE folio = :folio
+        LIMIT 1
+    ");
+
+    $stmt->bindParam(":folio", $folio, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+static public function mdlGuardarToken($id, $token){
+
+    $stmt = Conexion::conectar()->prepare("
+        UPDATE cotizaciones
+        SET token_confirmacion = :token
+        WHERE id = :id
+    ");
+
+    $stmt->bindParam(":token", $token, PDO::PARAM_STR);
+    $stmt->bindParam(":id", $id, PDO::PARAM_INT);
+
+    return $stmt->execute();
+}
+
+
+static public function mdlObtenerPorToken($token){
+
+    $stmt = Conexion::conectar()->prepare("
+        SELECT * FROM cotizaciones
+        WHERE token_confirmacion = :token
+        LIMIT 1
+    ");
+
+    $stmt->bindParam(":token", $token, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+static public function mdlRegistrarFechaRespuesta($id){
+
+    $stmt = Conexion::conectar()->prepare("
+        UPDATE cotizaciones
+        SET fecha_respuesta = NOW()
+        WHERE id = :id
+    ");
+
+    $stmt->bindParam(":id", $id, PDO::PARAM_INT);
+    return $stmt->execute();
+}
 
 
 }
