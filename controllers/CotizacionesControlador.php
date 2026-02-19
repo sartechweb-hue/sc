@@ -287,7 +287,7 @@ static public function ctrGuardarItems($data){
     }
 
 // Cambiar estado a enviada al guardar
-CotizacionesModelo::mdlCambiarEstado($cotizacion_id, "enviada");
+CotizacionesModelo::mdlCambiarEstado($cotizacion_id, "guardada");
 
 return ["ok" => true];
 }
@@ -311,17 +311,53 @@ static public function ctrEnviarCotizacion($id){
         return ["error" => "Cotización no encontrada"];
     }
 
+    if(empty($cotizacion["pdf_path"])){
+        return ["error" => "Debe generar el PDF primero"];
+    }
+
     if(in_array($cotizacion["estado"], ["enviada","cerrada"])){
         return ["error" => "Ya fue enviada o cerrada"];
     }
 
-    $resultado = CotizacionesModelo::mdlCambiarEstado($id, "enviada");
+    /* ===============================
+       LLAMAR A N8N
+    =============================== */
 
-    if(isset($resultado["ok"])){
+    $payload = [
+        "tipo" => "cotizacion",
+        "id" => $id,
+        "folio" => $cotizacion["folio"],
+        "to" => $cotizacion["cliente_email"],
+"pdf" => "http://localhost/sc/".$cotizacion["pdf_path"]
+    ];
+
+     $ch = curl_init("http://localhost:5678/webhook/enviar-cotizacion");
+
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Content-Type: application/json"
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if($httpCode !== 200){
+        return ["error" => "Error al contactar n8n"];
+    }
+
+    $resultado = json_decode($response, true);
+
+    if(isset($resultado["ok"]) && $resultado["ok"] === true){
+
+        CotizacionesModelo::mdlCambiarEstado($id, "enviada");
+
         return ["ok" => true];
     }
 
-    return ["error" => "No se pudo actualizar estado"];
+    return ["error" => "No se pudo enviar"];
 }
 
 

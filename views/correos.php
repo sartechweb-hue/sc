@@ -110,37 +110,40 @@ foreach($contactos as $c):
 </div>
 
 <script>
-document.querySelector('[name="from"]').addEventListener('change', function(){
-
-  const selected = this.options[this.selectedIndex];
-  const smtp = selected.getAttribute('data-smtp');
-
+function actualizarSMTP() {
+  const select = document.querySelector('[name="from"]');
+  const selected = select.options[select.selectedIndex];
+  const smtp = selected.getAttribute('data-smtp') || '';
   document.getElementById('smtp_key').value = smtp;
+}
 
+// Ejecutar al cambiar remitente
+document.querySelector('[name="from"]').addEventListener('change', actualizarSMTP);
+
+// Ejecutar cuando carga la página
+document.addEventListener('DOMContentLoaded', function() {
+  actualizarSMTP();
 });
-</script>
 
-
-
-<script>
-document.getElementById("formCorreo").addEventListener("submit",e=>{
+// Submit único
+document.getElementById("formCorreo").addEventListener("submit", function(e){
 
   e.preventDefault();
 
+  actualizarSMTP(); // Forzar antes de enviar
+
   fetch("ajax/correos.ajax.php",{
     method:"POST",
-    body:new FormData(e.target)
+    body:new FormData(this)
   })
   .then(r=>r.json())
   .then(r=>{
-
     if(r.ok){
       alert("Correo enviado");
       location.reload();
     }else{
-      alert("Error");
+      alert("Error: " + (r.error || "Desconocido"));
     }
-
   });
 
 });

@@ -15,7 +15,22 @@ if(!$cotizacion){
 }
 
 $items = CotizacionesControlador::ctrObtenerItems($id);
-$bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
+$estado = $cotizacion["estado"];
+$pdfGenerado = !empty($cotizacion["pdf_path"]);
+
+$editable = ($estado === "solicitada");
+$mostrarGenerarPDF = ($estado === "guardada" && !$pdfGenerado);
+
+/* Mostrar PDF siempre que exista */
+$mostrarVerPDF = $pdfGenerado;
+
+/* Enviar solo si está guardada y tiene PDF */
+$mostrarEnviar = ($estado === "guardada" && $pdfGenerado);
+
+
+$finalizada = in_array($estado, ["enviada","cerrada"]);
+
+
 
 ?>
 
@@ -23,11 +38,18 @@ $bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
 
 <h4>Detalle Cotización</h4>
 
-<?php if($bloqueada): ?>
-<div class="alert alert-success">
-    Cotización <?= ucfirst($cotizacion["estado"]) ?> — Documento bloqueado
+<?php if($cotizacion["estado"] === "enviada"): ?>
+<div class="alert alert-info">
+    Cotización enviada — Documento bloqueado
 </div>
 <?php endif; ?>
+
+<?php if($cotizacion["estado"] === "cerrada"): ?>
+<div class="alert alert-success">
+    Cotización cerrada — Proceso finalizado
+</div>
+<?php endif; ?>
+
 
 
 <div class="card mb-3">
@@ -54,7 +76,7 @@ $bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
 <th width="100">Cantidad</th>
 <th width="150">Precio Unit.</th>
 <th width="150">Subtotal</th>
-<?php if(!$bloqueada): ?>
+<?php if($editable): ?>
 <th width="50"></th>
 <?php endif; ?>
 </tr>
@@ -74,7 +96,7 @@ $bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
            name="descripcion[]"
            class="form-control"
            value="<?= $item["descripcion"] ?>"
-           <?= $bloqueada ? 'readonly' : '' ?>>
+         <?= !$editable ? 'readonly' : '' ?>>
 
     <?php if(!empty($item["texto_detectado"])): ?>
         <small class="text-muted">
@@ -89,7 +111,8 @@ $bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
        class="form-control cantidad"
        value="<?= $item["cantidad"] ?>"
        min="1"
-       <?= $bloqueada ? 'readonly' : '' ?>>
+       <?= !$editable ? 'readonly' : '' ?>
+>
 </td>
 
 <td>
@@ -98,14 +121,14 @@ $bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
        name="precio[]"
        class="form-control precio"
        value="<?= $item["precio_unitario"] ?>"
-       <?= $bloqueada ? 'readonly' : '' ?>>
+       <?= !$editable ? 'readonly' : '' ?>>
 </td>
 
 <td class="subtotal text-end">
 <?= number_format($item["subtotal"],2) ?>
 </td>
 
-<?php if(!$bloqueada): ?>
+<?php if($editable): ?>
 <td>
 <button type="button" class="btn btn-danger btn-sm eliminarFila">X</button>
 </td>
@@ -119,7 +142,7 @@ $bloqueada = in_array($cotizacion["estado"], ["enviada","cerrada"]);
 
 </table>
 
-<?php if(!$bloqueada): ?>
+<?php if($editable): ?>
 <button type="button" class="btn btn-secondary mb-3" id="agregarItem">
 Agregar Item
 </button>
@@ -131,18 +154,29 @@ Total: $ <span id="totalGeneral">0.00</span>
 
 <hr>
 
-<?php if(!$bloqueada): ?>
+<?php if($editable): ?>
 <button type="button" class="btn btn-success" id="guardarItems">
 Guardar
 </button>
 <?php endif; ?>
 
+
+<?php if($mostrarGenerarPDF): ?>
 <a href="views/generar_pdf.php?id=<?= $id ?>" class="btn btn-primary">
 Generar PDF
 </a>
+<?php endif; ?>
+
+<?php if($mostrarVerPDF): ?>
+<a href="<?= $cotizacion["pdf_path"] ?>"
+   target="_blank"
+   class="btn btn-outline-primary">
+Ver PDF generado
+</a>
+<?php endif; ?>
 
 
-<?php if(!$bloqueada): ?>
+<?php if($mostrarEnviar): ?>
 <button type="button"
 class="btn btn-dark"
 id="enviarCotizacion"
@@ -158,7 +192,7 @@ Enviar Cotización
 
 <script>
 
-let bloqueada = <?= $bloqueada ? 'true' : 'false' ?>;
+let editable = <?= $editable ? 'true' : 'false' ?>;
 
 /* ============================
    Calcular totales
@@ -186,7 +220,7 @@ function recalcular(){
         total.toFixed(2);
 }
 
-if(!bloqueada){
+if(editable){
 
 document.addEventListener("input",function(e){
 
