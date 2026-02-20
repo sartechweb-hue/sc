@@ -5,26 +5,31 @@ require_once "conexion.php";
 class CorreosModelo {
 
   /* ===========================
-     Guardar correo
+     Guardar correo (pendiente) y devolver ID
   =========================== */
   static public function mdlGuardarCorreo($datos){
 
-    $stmt = Conexion::conectar()->prepare("
+    $pdo = Conexion::conectar();
+
+    $stmt = $pdo->prepare("
       INSERT INTO correos_enviados
-      (usuario_id,remitente,destinatario,asunto,mensaje)
+      (usuario_id, remitente, destinatario, asunto, mensaje, estado)
       VALUES
-      (:usuario,:from,:to,:asunto,:mensaje)
+      (:usuario, :from, :to, :asunto, :mensaje, 'pendiente')
     ");
 
-    $stmt->bindParam(":usuario",$datos["usuario"],PDO::PARAM_INT);
-    $stmt->bindParam(":from",$datos["from"],PDO::PARAM_STR);
-    $stmt->bindParam(":to",$datos["to"],PDO::PARAM_STR);
-    $stmt->bindParam(":asunto",$datos["asunto"],PDO::PARAM_STR);
-    $stmt->bindParam(":mensaje",$datos["mensaje"],PDO::PARAM_STR);
+    $stmt->bindParam(":usuario", $datos["usuario"], PDO::PARAM_INT);
+    $stmt->bindParam(":from",    $datos["from"],    PDO::PARAM_STR);
+    $stmt->bindParam(":to",      $datos["to"],      PDO::PARAM_STR);
+    $stmt->bindParam(":asunto",  $datos["asunto"],  PDO::PARAM_STR);
+    $stmt->bindParam(":mensaje", $datos["mensaje"], PDO::PARAM_STR);
 
-    return $stmt->execute() ? "ok" : "error";
+    if($stmt->execute()){
+      return (int)$pdo->lastInsertId();
+    }
+
+    return false;
   }
-
 
   /* ===========================
      Historial
@@ -32,69 +37,85 @@ class CorreosModelo {
   static public function mdlHistorial(){
 
     $stmt = Conexion::conectar()->prepare("
-      SELECT * FROM correos_enviados
+      SELECT *
+      FROM correos_enviados
       ORDER BY fecha DESC
     ");
 
     $stmt->execute();
 
-    return $stmt->fetchAll();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
   }
 
   /* ===========================
-   Obtener destinatarios
-=========================== */
-static public function mdlObtenerContactos(){
+     Obtener contactos
+  =========================== */
+  static public function mdlObtenerContactos(){
 
-  $stmt = Conexion::conectar()->prepare("
-    SELECT id,nombre,email
-    FROM contactos_email
-    WHERE activo = 1
-    ORDER BY nombre
-  ");
+    $stmt = Conexion::conectar()->prepare("
+      SELECT id, nombre, email
+      FROM contactos_email
+      WHERE activo = 1
+      ORDER BY nombre
+    ");
 
-  $stmt->execute();
+    $stmt->execute();
 
-  return $stmt->fetchAll();
-}
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
 
-/* ===========================
-   Obtener remitentes
-=========================== */
-static public function mdlObtenerRemitentes(){
+  /* ===========================
+     Obtener remitentes
+  =========================== */
+  static public function mdlObtenerRemitentes(){
 
-  $stmt = Conexion::conectar()->prepare("
-    SELECT id,nombre,email,smtp_key
-    FROM correos_remitentes
-    WHERE activo = 1
-    ORDER BY nombre
-  ");
+    $stmt = Conexion::conectar()->prepare("
+      SELECT id, nombre, email, smtp_key
+      FROM correos_remitentes
+      WHERE activo = 1
+      ORDER BY nombre
+    ");
 
-  $stmt->execute();
+    $stmt->execute();
 
-  return $stmt->fetchAll();
-}
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
 
-/* ===========================
-   Actualizar estado
-=========================== */
-static public function mdlActualizarEstado($destino,$estado){
+  /* ===========================
+     Obtener smtp_key por email (seguro)
+  =========================== */
+  static public function mdlSmtpKeyPorEmail($email){
 
-  $stmt = Conexion::conectar()->prepare("
-    UPDATE correos_enviados
-    SET estado = :estado
-    WHERE destinatario = :to
-    ORDER BY id DESC
-    LIMIT 1
-  ");
+    $stmt = Conexion::conectar()->prepare("
+      SELECT smtp_key
+      FROM correos_remitentes
+      WHERE email = :email AND activo = 1
+      LIMIT 1
+    ");
 
-  $stmt->bindParam(":estado",$estado,PDO::PARAM_STR);
-  $stmt->bindParam(":to",$destino,PDO::PARAM_STR);
+    $stmt->bindParam(":email", $email, PDO::PARAM_STR);
+    $stmt->execute();
 
-  return $stmt->execute();
-}
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    return $row["smtp_key"] ?? null;
+  }
 
+  /* ===========================
+     Actualizar estado por ID (mejor que por destinatario)
+  =========================== */
+  static public function mdlActualizarEstadoPorId($idCorreo, $estado){
 
+    $stmt = Conexion::conectar()->prepare("
+      UPDATE correos_enviados
+      SET estado = :estado
+      WHERE id = :id
+      LIMIT 1
+    ");
 
+    $stmt->bindParam(":estado", $estado, PDO::PARAM_STR);
+    $stmt->bindParam(":id", $idCorreo, PDO::PARAM_INT);
+
+    return $stmt->execute();
+  }
 }

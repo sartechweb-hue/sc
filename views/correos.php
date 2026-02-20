@@ -4,133 +4,91 @@ $historial = CorreosControlador::ctrHistorial();
 
 <div class="container mt-4">
 
-<h4>Enviar Correo</h4>
+  <h4>Enviar Correo</h4>
 
-<form id="formCorreo">
+  <form id="formCorreo">
 
-<!-- REMITENTE -->
-<div class="mb-2">
-<label>Remitente</label>
+    <!-- REMITENTE -->
+    <div class="mb-2">
+      <label>Remitente</label>
 
-<select name="from" class="form-control" required>
+      <select name="from" class="form-control" required>
+        <option value="">Seleccione</option>
 
-<option value="">Seleccione</option>
+        <?php
+        $remitentes = CorreosControlador::ctrObtenerRemitentes();
+        foreach($remitentes as $r):
+        ?>
+          <option value="<?= htmlspecialchars($r["email"]) ?>">
+            <?= htmlspecialchars($r["nombre"]) ?> (<?= htmlspecialchars($r["email"]) ?>)
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
 
-<?php
-$remitentes = CorreosControlador::ctrObtenerRemitentes();
+    <!-- DESTINATARIO -->
+    <div class="mb-2">
+      <label>Destinatario</label>
 
-foreach($remitentes as $r):
-?>
+      <select name="to" class="form-control" required>
+        <option value="">Seleccione</option>
 
-<option 
-  value="<?= $r["email"] ?>" 
-  data-smtp="<?= $r["smtp_key"] ?>"
->
-  <?= $r["nombre"] ?> (<?= $r["email"] ?>)
-</option>
+        <?php
+        $contactos = CorreosControlador::ctrObtenerContactos();
+        foreach($contactos as $c):
+        ?>
+          <option value="<?= htmlspecialchars($c["email"]) ?>">
+            <?= htmlspecialchars($c["nombre"]) ?> (<?= htmlspecialchars($c["email"]) ?>)
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
 
+    <!-- MOTIVO -->
+    <div class="mb-2">
+      <label>Motivo</label>
+      <input type="text" name="asunto" class="form-control" required>
+    </div>
 
-<?php endforeach; ?>
+    <!-- MENSAJE -->
+    <div class="mb-2">
+      <label>Mensaje</label>
+      <textarea name="mensaje" class="form-control" rows="5" required></textarea>
+    </div>
 
-</select>
-<input type="hidden" name="smtp_key" id="smtp_key">
+    <button class="btn btn-primary">Enviar</button>
 
-</div>
+  </form>
 
+  <hr>
 
-<!-- DESTINATARIO -->
-<div class="mb-2">
-<label>Destinatario</label>
+  <h5>Historial</h5>
 
-<select name="to" class="form-control" required>
+  <table class="table table-sm">
+    <tr>
+      <th>Fecha</th>
+      <th>De</th>
+      <th>Para</th>
+      <th>Asunto</th>
+      <th>Estado</th>
+    </tr>
 
-<option value="">Seleccione</option>
-
-<?php
-$contactos = CorreosControlador::ctrObtenerContactos();
-
-foreach($contactos as $c):
-
-?>
-
-<option value="<?= $c["email"] ?>">
-  <?= $c["nombre"] ?> (<?= $c["email"] ?>)
-</option>
-
-<?php endforeach; ?>
-
-</select>
-</div>
-</div>
-
-<!-- MOTIVO -->
-<div class="mb-2">
-<label>Motivo</label>
-<input type="text" name="asunto" class="form-control" required>
-</div>
-
-<!-- MENSAJE -->
-<div class="mb-2">
-<label>Mensaje</label>
-<textarea name="mensaje" class="form-control" rows="5" required></textarea>
-</div>
-
-<button class="btn btn-primary">Enviar</button>
-
-</form>
-
-<hr>
-
-<h5>Historial</h5>
-
-<table class="table table-sm">
-
-<tr>
-<th>Fecha</th>
-<th>De</th>
-<th>Para</th>
-<th>Asunto</th>
-<th>Estado</th>
-</tr>
-
-<?php foreach($historial as $h): ?>
-
-<tr>
-<td><?= $h["fecha"] ?></td>
-<td><?= $h["remitente"] ?></td>
-<td><?= $h["destinatario"] ?></td>
-<td><?= $h["asunto"] ?></td>
-<td><?= $h["estado"] ?></td>
-</tr>
-
-<?php endforeach; ?>
-
-</table>
+    <?php foreach($historial as $h): ?>
+      <tr>
+        <td><?= htmlspecialchars($h["fecha"]) ?></td>
+        <td><?= htmlspecialchars($h["remitente"]) ?></td>
+        <td><?= htmlspecialchars($h["destinatario"]) ?></td>
+        <td><?= htmlspecialchars($h["asunto"]) ?></td>
+        <td><?= htmlspecialchars($h["estado"]) ?></td>
+      </tr>
+    <?php endforeach; ?>
+  </table>
 
 </div>
 
 <script>
-function actualizarSMTP() {
-  const select = document.querySelector('[name="from"]');
-  const selected = select.options[select.selectedIndex];
-  const smtp = selected.getAttribute('data-smtp') || '';
-  document.getElementById('smtp_key').value = smtp;
-}
-
-// Ejecutar al cambiar remitente
-document.querySelector('[name="from"]').addEventListener('change', actualizarSMTP);
-
-// Ejecutar cuando carga la página
-document.addEventListener('DOMContentLoaded', function() {
-  actualizarSMTP();
-});
-
-// Submit único
 document.getElementById("formCorreo").addEventListener("submit", function(e){
-
   e.preventDefault();
-
-  actualizarSMTP(); // Forzar antes de enviar
 
   fetch("ajax/correos.ajax.php",{
     method:"POST",
@@ -139,12 +97,14 @@ document.getElementById("formCorreo").addEventListener("submit", function(e){
   .then(r=>r.json())
   .then(r=>{
     if(r.ok){
-      alert("Correo enviado");
+      alert(r.ok);
       location.reload();
     }else{
       alert("Error: " + (r.error || "Desconocido"));
     }
+  })
+  .catch(()=>{
+    alert("Error de red");
   });
-
 });
 </script>
